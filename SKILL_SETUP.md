@@ -1,5 +1,14 @@
 # Custom PPTX Skill Setup Guide
 
+⚠️ **DEPRECATED**: This guide is for the old Strategy A (skill-based) approach. 
+
+**The project now uses Strategy B (Local Generation)** which doesn't require custom skills. See [CLAUDE.md](CLAUDE.md) for current architecture.
+
+---
+
+<details>
+<summary>📜 Old documentation (for reference only)</summary>
+
 Hướng dẫn cấu hình custom skill `pptx-enhanced` với hỗ trợ images và charts.
 
 ## Cách hoạt động
@@ -167,3 +176,5 @@ client.beta.skills.delete(
 - [Anthropic Skills Documentation](https://docs.claude.com/en/docs/agents-and-tools/agent-skills)
 - [Skills API Guide](https://docs.claude.com/en/api/skills-guide)
 - Custom skill location: `.claude/skills/pptx-enhanced/`
+
+</details>
