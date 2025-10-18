@@ -36,13 +36,19 @@ class HTMLSlideGenerator:
         self.workspace_dir = Path(workspace_dir)
         ensure_directory(self.workspace_dir)
 
-        # Setup Anthropic client
-        client_kwargs = {"api_key": self.api_key}
+        # Setup Anthropic client with prompt caching
+        client_kwargs = {
+            "api_key": self.api_key,
+            "default_headers": {
+                "anthropic-beta": "prompt-caching-2024-07-31"
+            }
+        }
         if self.base_url:
             client_kwargs["base_url"] = self.base_url
             logger.info(f"Using custom base URL: {self.base_url}")
         
         self.client = Anthropic(**client_kwargs)
+        logger.info("Prompt caching enabled")
 
         # Load themes
         self.themes_path = Path(__file__).parent / "themes.md"
@@ -126,13 +132,21 @@ class HTMLSlideGenerator:
         output_dir: Path
     ) -> Path:
         """Generate HTML for title slide."""
-        prompt = f"""Generate a complete HTML5 document for a presentation title slide.
+        # Use structured content with cache_control for theme definitions
+        prompt_content = [
+            {
+                "type": "text",
+                "text": f"""Generate a complete HTML5 document for a presentation title slide.
 
 **Theme**: {theme}
 
 **Theme Definitions**:
-{self._get_theme_excerpt(theme)}
-
+{self._get_theme_excerpt(theme)}""",
+                "cache_control": {"type": "ephemeral"}  # Cache theme definitions
+            },
+            {
+                "type": "text",
+                "text": f"""
 **Content**:
 - Title: {title}
 
@@ -147,11 +161,13 @@ class HTMLSlideGenerator:
 
 **Output**: Return ONLY the complete HTML code, no explanations.
 """
+            }
+        ]
 
         response = self.client.messages.create(
             model=self.model,
             max_tokens=4000,
-            messages=[{"role": "user", "content": prompt}]
+            messages=[{"role": "user", "content": prompt_content}]
         )
 
         html_content = response.content[0].text
@@ -196,13 +212,21 @@ class HTMLSlideGenerator:
         else:
             layout_instruction = "**Layout**: Full-width text (no image)"
 
-        prompt = f"""Generate a complete HTML5 document for a presentation content slide.
+        # Use structured content with cache_control for theme definitions
+        prompt_content = [
+            {
+                "type": "text",
+                "text": f"""Generate a complete HTML5 document for a presentation content slide.
 
 **Theme**: {theme}
 
 **Theme Definitions**:
-{self._get_theme_excerpt(theme)}
-
+{self._get_theme_excerpt(theme)}""",
+                "cache_control": {"type": "ephemeral"}  # Cache theme definitions
+            },
+            {
+                "type": "text",
+                "text": f"""
 **Content**:
 - Title: {slide_title}
 - Bullet points:
@@ -221,11 +245,13 @@ class HTMLSlideGenerator:
 
 **Output**: Return ONLY the complete HTML code, no explanations.
 """
+            }
+        ]
 
         response = self.client.messages.create(
             model=self.model,
             max_tokens=4000,
-            messages=[{"role": "user", "content": prompt}]
+            messages=[{"role": "user", "content": prompt_content}]
         )
 
         html_content = response.content[0].text

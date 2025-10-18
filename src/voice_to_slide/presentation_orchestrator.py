@@ -33,14 +33,20 @@ class PresentationOrchestrator:
         # Get model from env or use default
         self.model = model or os.getenv("CONTENT_MODEL", "claude-haiku-4-5-20251001")
 
-        # Setup client with optional custom base URL
+        # Setup client with optional custom base URL and prompt caching
         base_url = os.getenv("CONTENT_ANTHROPIC_BASE_URL")
-        client_kwargs = {"api_key": self.api_key}
+        client_kwargs = {
+            "api_key": self.api_key,
+            "default_headers": {
+                "anthropic-beta": "prompt-caching-2024-07-31"
+            }
+        }
         if base_url:
             client_kwargs["base_url"] = base_url
             logger.info(f"Using custom base URL: {base_url}")
 
         self.client = Anthropic(**client_kwargs)
+        logger.info("Prompt caching enabled")
         
         logger.info(f"PresentationOrchestrator initialized with model: {self.model}")
 
