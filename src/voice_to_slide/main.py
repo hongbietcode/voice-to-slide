@@ -35,6 +35,18 @@ def cli():
     help='Output PPTX file path (default: ./output/<audio_name>.pptx)'
 )
 @click.option(
+    '--theme', '-t',
+    type=click.Choice([
+        'Modern Professional',
+        'Dark Mode',
+        'Vibrant Creative',
+        'Minimal Clean',
+        'Corporate Blue'
+    ], case_sensitive=False),
+    default='Modern Professional',
+    help='Presentation theme (default: Modern Professional)'
+)
+@click.option(
     '--images/--no-images',
     default=True,
     help='Include relevant images from Unsplash (default: enabled)'
@@ -44,7 +56,7 @@ def cli():
     default=True,
     help='Save transcription to JSON file (default: enabled)'
 )
-def generate(audio_file, output, images, save_transcription):
+def generate(audio_file, output, theme, images, save_transcription):
     """Generate a presentation from an audio file.
 
     AUDIO_FILE: Path to the audio file (MP3, WAV, M4A, etc.)
@@ -52,6 +64,8 @@ def generate(audio_file, output, images, save_transcription):
     Example:
         voice-to-slide generate meeting.mp3
         voice-to-slide generate presentation.wav --output slides.pptx
+        voice-to-slide generate recording.mp3 --theme "Dark Mode"
+        voice-to-slide generate recording.mp3 --theme "Vibrant Creative" --no-images
     """
     try:
         click.echo(f"🎙️  Voice-to-Slide Generator")
@@ -97,25 +111,32 @@ def generate(audio_file, output, images, save_transcription):
         
         click.echo()
 
-        # Step 4: Generate presentation locally (Strategy B)
-        click.echo("🎨 Step 3: Generating presentation (Strategy B: Local Generation)...")
-        click.echo(f"   • Using Claude Tool Use for structure analysis")
-        click.echo(f"   • Fetching images locally with network access")
-        click.echo(f"   • Building PPTX locally with python-pptx")
+        # Step 4: Generate presentation locally (Strategy B with HTML)
+        click.echo("🎨 Step 3: Generating presentation (Strategy B: HTML → Images → PPTX)...")
+        click.echo(f"   • Theme: {theme}")
+        click.echo(f"   • Generating HTML slides with Claude Messages API")
+        click.echo(f"   • Rendering HTML to high-quality images (Playwright)")
+        click.echo(f"   • Fetching images from Unsplash")
+        click.echo(f"   • Creating PPTX with rendered slides")
         click.echo()
         
         result = orchestrator.generate_presentation(
             transcription_text,
             output_path=output,
-            use_images=images
+            use_images=images,
+            theme=theme,
+            use_html_generation=True
         )
 
         if result['status'] == 'success':
             click.echo()
             click.echo(f"✅ Success! Presentation generated:")
             click.echo(f"   📄 File: {result['output_path']}")
+            click.echo(f"   🎨 Theme: {result.get('theme', 'N/A')}")
             click.echo(f"   📊 Total slides: {result['total_slides']}")
             click.echo(f"   🖼️  Images: {result['images_fetched']}/{len(result['structure'].get('slides', []))}")
+            if 'html_files' in result:
+                click.echo(f"   📝 HTML files: {len(result['html_files'])} generated")
         else:
             click.echo()
             click.echo(f"❌ Generation failed: {result.get('error')}")

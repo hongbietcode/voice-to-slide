@@ -198,6 +198,68 @@ class ImageFetcher:
                 with open(output_path, 'wb') as f_out:
                     f_out.write(f_in.read())
 
+    def get_image_urls_for_presentation(self, queries: List[str]) -> List[Optional[Dict[str, Any]]]:
+        """Get image URLs and metadata without downloading.
+
+        Args:
+            queries: List of search queries for each slide
+
+        Returns:
+            List of dicts with {url, width, height, description} or None for failed queries
+        """
+        if not queries:
+            return []
+
+        logger.info(f"Fetching image URLs for {len(queries)} slides...")
+
+        results = []
+        for i, query in enumerate(queries):
+            try:
+                logger.debug(f"Searching Unsplash for: {query}")
+                
+                headers = {"Authorization": f"Client-ID {self.api_key}"}
+                response = requests.get(
+                    f"{self.base_url}/search/photos",
+                    headers=headers,
+                    params={
+                        "query": query,
+                        "per_page": 1,
+                        "orientation": "landscape"
+                    },
+                    timeout=10
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    
+                    if data.get("results"):
+                        photo = data["results"][0]
+                        image_info = {
+                            "url": photo["urls"]["regular"],  # High quality URL (~1080px width)
+                            "width": photo["width"],
+                            "height": photo["height"],
+                            "description": photo.get("description") or photo.get("alt_description") or query,
+                            "photographer": photo["user"]["name"],
+                            "photographer_url": photo["user"]["links"]["html"]
+                        }
+                        results.append(image_info)
+                        logger.info(f"✓ Found image for '{query}': {photo['urls']['regular'][:60]}...")
+                    else:
+                        logger.warning(f"No images found for '{query}'")
+                        results.append(None)
+                else:
+                    logger.error(f"Unsplash API error: {response.status_code}")
+                    results.append(None)
+                    
+            except Exception as e:
+                logger.error(f"Failed to fetch image URL for '{query}': {e}")
+                results.append(None)
+
+        successful = sum(1 for r in results if r is not None)
+        logger.info(f"Successfully fetched {successful}/{len(queries)} image URLs")
+        
+        return results
+
     def fetch_image_for_slide(
         self,
         query: str,

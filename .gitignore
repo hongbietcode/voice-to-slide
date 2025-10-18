@@ -17,7 +17,6 @@ build/
 
 # Output files
 output/
-*.pptx
 *.transcription.json
 
 # Cache
@@ -38,3 +37,8 @@ Thumbs.db
 # uv
 .uv/
 uv.lock
+# Generated test files - do not commit
+workspace/slide_images/
+workspace/slides/*.html
+output/*.pptx
+test*.pptx

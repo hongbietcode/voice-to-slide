@@ -8,6 +8,8 @@ from anthropic import Anthropic
 from .utils import get_logger
 from .image_fetcher import ImageFetcher
 from .slide_builder import SlideBuilder
+from .html_generator import HTMLSlideGenerator
+from .html_to_pptx import convert_html_to_pptx
 
 logger = get_logger(__name__)
 
@@ -201,36 +203,38 @@ Use the analyze_presentation_structure tool to provide the complete structure.
             "image_queries": image_queries if use_images else []
         }
 
-    def fetch_images(self, image_queries: List[str]) -> List[Optional[Path]]:
-        """Fetch images using ImageFetcher (local execution with network access).
+    def fetch_images(self, image_queries: List[str]) -> List[Optional[Dict[str, Any]]]:
+        """Fetch image URLs using ImageFetcher (no download, just URLs).
 
         Args:
             image_queries: List of search queries
 
         Returns:
-            List of image paths (None for failed downloads)
+            List of image metadata dicts {url, width, height, description} (None for failed queries)
         """
         if not image_queries:
             logger.info("No image queries provided, skipping image fetch")
             return []
 
-        logger.info(f"Fetching {len(image_queries)} images from Unsplash")
+        logger.info(f"Fetching {len(image_queries)} image URLs from Unsplash")
 
         try:
             fetcher = ImageFetcher()
-            image_paths = fetcher.fetch_images_for_presentation(image_queries)
-            successful = sum(1 for p in image_paths if p is not None)
-            logger.info(f"Successfully fetched {successful}/{len(image_queries)} images")
-            return image_paths
+            image_data = fetcher.get_image_urls_for_presentation(image_queries)
+            successful = sum(1 for p in image_data if p is not None)
+            logger.info(f"Successfully fetched {successful}/{len(image_queries)} image URLs")
+            return image_data
         except ValueError as e:
-            logger.error(f"Failed to fetch images: {e}")
+            logger.error(f"Failed to fetch image URLs: {e}")
             return [None] * len(image_queries)
 
     def generate_presentation(
         self,
         transcription_text: str,
         output_path: Path | str,
-        use_images: bool = True
+        use_images: bool = True,
+        theme: str = "Modern Professional",
+        use_html_generation: bool = True
     ) -> Dict[str, Any]:
         """Generate complete presentation using Tool Use + local execution.
 
@@ -238,11 +242,13 @@ Use the analyze_presentation_structure tool to provide the complete structure.
             transcription_text: Transcribed audio text
             output_path: Path to save PPTX file
             use_images: Whether to include images
+            theme: Theme name for styling (from themes.md)
+            use_html_generation: Use Agent SDK HTML generation (recommended)
 
         Returns:
             Result dictionary with status and file info
         """
-        logger.info("Starting presentation generation (Strategy B: Local Generation)")
+        logger.info(f"Starting presentation generation (Strategy B with {'HTML' if use_html_generation else 'direct'} generation)")
 
         try:
             # Step 1: Analyze and structure using Claude Tool Use
@@ -250,26 +256,66 @@ Use the analyze_presentation_structure tool to provide the complete structure.
             structure = result["structure"]
             image_queries = result["image_queries"]
 
-            # Step 2: Fetch images locally (has network access)
-            image_paths = []
+            # Step 2: Fetch image URLs (no download, just metadata)
+            image_data = []
             if use_images and image_queries:
-                image_paths = self.fetch_images(image_queries)
+                image_data = self.fetch_images(image_queries)
 
-            # Step 3: Generate PPTX locally using SlideBuilder
-            logger.info("Generating PPTX file locally")
-            output_path = SlideBuilder.create_presentation(
-                content=structure,
-                output_path=output_path,
-                image_paths=image_paths if image_paths else None
-            )
+            # Step 3: Generate presentation
+            if use_html_generation:
+                # NEW FLOW: HTML Generation → PPTX Conversion
+                logger.info(f"Generating HTML slides with theme: {theme}")
 
-            return {
-                "status": "success",
-                "output_path": str(output_path),
-                "structure": structure,
-                "images_fetched": len([p for p in image_paths if p is not None]),
-                "total_slides": len(structure.get("slides", [])) + 1  # +1 for title slide
-            }
+                # Step 3a: Generate HTML slides using Messages API
+                base_url = os.getenv("CONTENT_ANTHROPIC_BASE_URL")
+                html_generator = HTMLSlideGenerator(
+                    api_key=self.api_key,
+                    model=self.model,
+                    base_url=base_url
+                )
+
+                html_files = html_generator.generate_slides_html(
+                    structure=structure,
+                    image_data=image_data,
+                    theme=theme
+                )
+
+                logger.info(f"Generated {len(html_files)} HTML files")
+
+                # Step 3b: Convert HTML → Images → PPTX
+                logger.info("Converting HTML slides to PPTX (via images)")
+                output_path = convert_html_to_pptx(
+                    html_files=html_files,
+                    output_path=Path(output_path),
+                    image_dir=None  # Auto-generate in output dir
+                )
+
+                return {
+                    "status": "success",
+                    "output_path": str(output_path),
+                    "structure": structure,
+                    "images_fetched": len([p for p in image_data if p is not None]),
+                    "total_slides": len(structure.get("slides", [])) + 1,
+                    "theme": theme,
+                    "html_files": [str(f) for f in html_files]
+                }
+
+            else:
+                # OLD FLOW: Direct PPTX generation
+                logger.info("Generating PPTX file directly")
+                output_path = SlideBuilder.create_presentation(
+                    content=structure,
+                    output_path=output_path,
+                    image_paths=image_paths if image_paths else None
+                )
+
+                return {
+                    "status": "success",
+                    "output_path": str(output_path),
+                    "structure": structure,
+                    "images_fetched": len([p for p in image_paths if p is not None]),
+                    "total_slides": len(structure.get("slides", [])) + 1
+                }
 
         except Exception as e:
             logger.exception("Presentation generation failed")
