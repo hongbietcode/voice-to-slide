@@ -1,0 +1,82 @@
+{
+  "executive_summary": "OpenAI Dev Day 2025 introduced game-changing features that will transform how developers build AI-powered applications, headlined by ChatGPT Apps which aims to turn ChatGPT into an operating system platform with access to 800 million weekly users. Alongside significant API updates including SORA2 and GPT-5 Pro, OpenAI launched Agent Kit (a no-code flowchart-based development tool) and GitHub Actions integration for automated code reviews, positioning OpenAI to dominate the AI development ecosystem despite skepticism about some features' practical adoption.",
+  "key_points": [
+    "Sam Altman announced that OpenAI's new features make existing tech stacks deprecated",
+    "ChatGPT Apps aims to become an operating system platform replacing traditional apps",
+    "OpenAI has 800 million weekly active users providing massive distribution potential",
+    "SORA2 costs 50 cents per second of video generation ($1,800 for one hour)",
+    "New smaller models for voice/image generation reduce development costs",
+    "GitHub Actions integration enables automated code quality reviews and security scanning",
+    "Agent Kit provides no-code flowchart development for building AI apps",
+    "JetBrains launched Juni AI coding agent with superior context handling for large projects"
+  ],
+  "main_topics": [
+    "ChatGPT Apps Platform Strategy",
+    "OpenAI API Updates and Cost Reduction",
+    "Agent Kit and No-Code Development Tools",
+    "Automated Development Workflow Integration",
+    "AI Coding Assistant Competition"
+  ],
+  "sections": [
+    {
+      "title": "Introduction: OpenAI's Platform Revolution",
+      "key_info": "Sam Altman declared existing tech stacks deprecated with half a dozen new features that will change AI app development. The biggest bet is turning ChatGPT into an app platform/operating system.",
+      "important_quotes": [
+        "Your entire tech stack is deprecated",
+        "The goal is to make ChatGPT like an operating system that you're completely locked into"
+      ],
+      "slide_suggestions": "Impact statement slide with Altman quote, visual showing old vs new tech stack comparison"
+    },
+    {
+      "title": "ChatGPT Apps: The New Platform",
+      "key_info": "ChatGPT Apps aims to replace traditional websites and mobile apps. Third attempt after failed GPT plugins and GPTs. Currently trialed with major apps like Zillow. Speaker is bearish due to UI preference concerns but notes 800M weekly users distribution opportunity.",
+      "important_quotes": [
+        "You no longer have to use old-fashioned websites or mobile apps like a Boomer",
+        "Remember GPT plugins from a couple years ago? They died"
+      ],
+      "slide_suggestions": "Evolution timeline showing plugins → GPTs → Apps, User flow comparison showing app vs ChatGPT interaction"
+    },
+    {
+      "title": "API Updates: SORA2 and GPT-5 Pro",
+      "key_info": "Both SORA2 and GPT-5 Pro now available in API. SORA2 costs $0.50/second for high-quality video. New smaller, less expensive models for voice and image generation features.",
+      "important_quotes": [
+        "Sora 2 costs 50 cents per one second of high quality video or about $1,800 to swap out a one-hour movie that nobody's going to watch"
+      ],
+      "slide_suggestions": "Cost comparison chart, Model capabilities matrix, Video generation cost calculator"
+    },
+    {
+      "title": "Development Workflow Automation",
+      "key_info": "GitHub Actions integration for Codex enables automatic code quality reviews, security scanning, and documentation generation on every PR. Addresses developer productivity and code review bottlenecks.",
+      "important_quotes": [
+        "One of the greatest life hacks for developers is to stop wasting time on code reviews"
+      ],
+      "slide_suggestions": "Workflow diagram showing automated review process, Before/after productivity comparison"
+    },
+    {
+      "title": "Agent Kit: No-Code AI Development",
+      "key_info": "Flowchart-style canvas for building, deploying, and optimizing AI apps without manual coding. Positions as N8N alternative for AI apps. Gives non-engineers ability to build complex apps but has complexity ceiling requiring real programmers eventually.",
+      "important_quotes": [
+        "Agent Kit drops as the N8N alternative for building AI apps",
+        "No-code tools like this always have a complexity ceiling"
+      ],
+      "slide_suggestions": "Interface mockup showing flowchart canvas, Use case examples, Limitations and benefits comparison"
+    },
+    {
+      "title": "JetBrains Juni: Context-Aware AI Assistant",
+      "key_info": "New AI coding agent integrated with JetBrains IDE. Understands entire codebase context for seamless workflow integration. Slower than other tools but superior accuracy on large projects. Supports asynchronous job assignment via GitHub integration.",
+      "important_quotes": [
+        "It handles context and accuracy extremely well on a big project",
+        "That's huge if you're on a big team"
+      ],
+      "slide_suggestions": "Architecture diagram showing deep codebase integration, Performance comparison chart, Enterprise use cases"
+    }
+  ],
+  "audience": "Software developers, AI engineers, product managers, technology decision-makers, and startup founders interested in AI development tools and platform strategies",
+  "tone": "Informative and analytical with balanced perspective - highlights both opportunities and challenges, uses some humor and cultural references but maintains professional tech industry focus",
+  "recommended_structure": {
+    "total_slides": 15,
+    "intro_slides": 2,
+    "content_slides": 11,
+    "conclusion_slides": 2
+  }
+}
