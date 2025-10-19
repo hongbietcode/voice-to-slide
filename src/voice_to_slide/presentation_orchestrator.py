@@ -10,6 +10,7 @@ from .image_fetcher import ImageFetcher
 from .slide_builder import SlideBuilder
 from .html_generator import HTMLSlideGenerator
 from .html_to_pptx import convert_html_to_pptx
+from .structure_editor import StructureEditor
 
 logger = get_logger(__name__)
 
@@ -236,20 +237,24 @@ Use the analyze_presentation_structure tool to provide the complete structure.
 
     def generate_presentation(
         self,
-        transcription_text: str,
-        output_path: Path | str,
+        transcription_text: str = None,
+        output_path: Path | str = None,
         use_images: bool = True,
         theme: str = "Modern Professional",
-        use_html_generation: bool = True
+        use_html_generation: bool = True,
+        interactive: bool = False,
+        structure: Dict[str, Any] = None
     ) -> Dict[str, Any]:
         """Generate complete presentation using Tool Use + local execution.
 
         Args:
-            transcription_text: Transcribed audio text
+            transcription_text: Transcribed audio text (optional if structure provided)
             output_path: Path to save PPTX file
             use_images: Whether to include images
             theme: Theme name for styling (from themes.md)
             use_html_generation: Use Agent SDK HTML generation (recommended)
+            interactive: Allow user to edit structure before generation (deprecated)
+            structure: Pre-generated structure (skips analysis if provided)
 
         Returns:
             Result dictionary with status and file info
@@ -257,10 +262,22 @@ Use the analyze_presentation_structure tool to provide the complete structure.
         logger.info(f"Starting presentation generation (Strategy B with {'HTML' if use_html_generation else 'direct'} generation)")
 
         try:
-            # Step 1: Analyze and structure using Claude Tool Use
-            result = self.analyze_and_structure(transcription_text, use_images)
-            structure = result["structure"]
-            image_queries = result["image_queries"]
+            # Step 1: Analyze and structure using Claude Tool Use (if structure not provided)
+            if structure is None:
+                if transcription_text is None:
+                    raise ValueError("Either transcription_text or structure must be provided")
+                result = self.analyze_and_structure(transcription_text, use_images)
+                structure = result["structure"]
+                image_queries = result.get("image_queries", [])
+            else:
+                # Extract image queries from provided structure
+                logger.info("Using provided structure, skipping analysis")
+                image_queries = []
+                if use_images:
+                    for slide in structure.get("slides", []):
+                        theme_query = slide.get("image_theme", "")
+                        if theme_query:
+                            image_queries.append(theme_query)
 
             # Step 2: Fetch image URLs (no download, just metadata)
             image_data = []
@@ -376,3 +393,88 @@ Use the analyze_presentation_structure tool to provide the complete structure.
         lines.append("\n" + "=" * 70)
 
         return "\n".join(lines)
+
+    def format_structure_preview(self, structure: Dict[str, Any]) -> str:
+        """Format structure for display.
+
+        Args:
+            structure: Presentation structure
+
+        Returns:
+            Formatted preview string
+        """
+        lines = [
+            "=" * 70,
+            f"PRESENTATION STRUCTURE",
+            "=" * 70,
+            f"\nTitle: {structure['title']}",
+            f"Total Slides: {len(structure['slides']) + 1} (including title slide)",
+            "\n" + "-" * 70,
+        ]
+
+        for i, slide in enumerate(structure.get("slides", []), 1):
+            lines.append(f"\nSlide {i + 1}: {slide['title']}")
+
+            if "image_theme" in slide and slide["image_theme"]:
+                lines.append(f"  Image: {slide['image_theme']}")
+
+            lines.append("  Points:")
+            for point in slide.get("bullet_points", []):
+                lines.append(f"    • {point}")
+
+        lines.append("\n" + "=" * 70)
+
+        return "\n".join(lines)
+
+    def allow_feedback_loop(
+        self,
+        initial_structure: Dict[str, Any],
+        callback_get_feedback,
+        callback_show_structure=None
+    ) -> Dict[str, Any]:
+        """Allow user to provide feedback and edit structure using AI.
+
+        Args:
+            initial_structure: Initial presentation structure
+            callback_get_feedback: Function to get feedback from user (returns str)
+                                   Should return "/start" to begin generation
+            callback_show_structure: Optional callback to show updated structure after edit
+
+        Returns:
+            Final edited structure
+        """
+        logger.info("Starting feedback loop for structure editing")
+
+        structure = initial_structure
+        editor = StructureEditor(api_key=self.api_key, model=self.model)
+
+        while True:
+            # Get user feedback
+            feedback = callback_get_feedback()
+
+            # Check for /start command
+            if feedback.strip().lower() == "/start":
+                logger.info("User initiated slide generation with /start command")
+                break
+
+            # Skip empty feedback
+            if not feedback.strip():
+                continue
+
+            try:
+                # Edit structure using AI
+                logger.info("Editing structure based on user feedback")
+                structure = editor.edit_structure(structure, feedback)
+
+                # Log the update
+                logger.info(f"Structure updated: {len(structure.get('slides', []))} slides")
+
+                # Show updated structure if callback provided
+                if callback_show_structure:
+                    callback_show_structure(structure)
+
+            except Exception as e:
+                logger.error(f"Failed to edit structure: {e}")
+                # Continue loop to allow retry
+
+        return structure

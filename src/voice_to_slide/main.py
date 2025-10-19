@@ -56,7 +56,12 @@ def cli():
     default=True,
     help='Save transcription to JSON file (default: enabled)'
 )
-def generate(audio_file, output, theme, images, save_transcription):
+@click.option(
+    '--interactive/--no-interactive',
+    default=False,
+    help='Enable interactive editing of structure before generation (default: disabled)'
+)
+def generate(audio_file, output, theme, images, save_transcription, interactive):
     """Generate a presentation from an audio file.
 
     AUDIO_FILE: Path to the audio file (MP3, WAV, M4A, etc.)
@@ -66,6 +71,7 @@ def generate(audio_file, output, theme, images, save_transcription):
         voice-to-slide generate presentation.wav --output slides.pptx
         voice-to-slide generate recording.mp3 --theme "Dark Mode"
         voice-to-slide generate recording.mp3 --theme "Vibrant Creative" --no-images
+        voice-to-slide generate recording.mp3 --interactive
     """
     try:
         click.echo(f"🎙️  Voice-to-Slide Generator")
@@ -98,34 +104,75 @@ def generate(audio_file, output, theme, images, save_transcription):
         # Step 2: Analyze and preview structure using Orchestrator
         click.echo("🧠 Step 2: Analyzing content and generating structure...")
         orchestrator = PresentationOrchestrator()
-        
-        # Get preview
-        preview = orchestrator.preview_structure(transcription_text, use_images=images)
+
+        # Get structure
+        result = orchestrator.analyze_and_structure(transcription_text, use_images=images)
+        structure = result["structure"]
+
+        # Show initial preview
+        preview = orchestrator.format_structure_preview(structure)
         click.echo(preview)
         click.echo()
-        
-        # Step 3: Confirm generation
-        if not click.confirm('\n⚠️  Proceed with presentation generation?', default=True):
-            click.echo("\n❌ Generation cancelled by user.")
-            sys.exit(0)
-        
-        click.echo()
+
+        # Step 3: Interactive feedback loop (if enabled)
+        if interactive:
+            click.echo("💬 FEEDBACK MODE")
+            click.echo("=" * 50)
+            click.echo("You can now provide feedback to edit the structure.")
+            click.echo("Type your feedback and press Enter.")
+            click.echo("Type '/start' when ready to generate slides.")
+            click.echo("=" * 50)
+            click.echo()
+
+            # Callback to get feedback from user
+            def get_feedback():
+                return input("\n📝 Feedback (or /start to begin): ").strip()
+
+            # Callback to show updated structure
+            def show_structure(updated_structure):
+                click.echo("\n✨ Structure updated!")
+                click.echo("=" * 70)
+                preview = orchestrator.format_structure_preview(updated_structure)
+                click.echo(preview)
+
+            # Run feedback loop
+            structure = orchestrator.allow_feedback_loop(
+                structure,
+                get_feedback,
+                show_structure
+            )
+
+            # Show final structure after edits
+            click.echo("\n" + "=" * 70)
+            click.echo("✅ FINAL STRUCTURE - Ready to generate slides!")
+            click.echo("=" * 70)
+            click.echo()
+        else:
+            # Step 3 (non-interactive): Confirm generation
+            if not click.confirm('\n⚠️  Proceed with presentation generation?', default=True):
+                click.echo("\n❌ Generation cancelled by user.")
+                sys.exit(0)
+
+            click.echo()
 
         # Step 4: Generate presentation locally (Strategy B with HTML)
-        click.echo("🎨 Step 3: Generating presentation (Strategy B: HTML → Images → PPTX)...")
+        click.echo("🎨 Step 4: Generating presentation (Strategy B: HTML → Images → PPTX)...")
         click.echo(f"   • Theme: {theme}")
+        if interactive:
+            click.echo(f"   • Using edited structure from feedback loop")
         click.echo(f"   • Generating HTML slides with Claude Messages API")
         click.echo(f"   • Rendering HTML to high-quality images (Playwright)")
         click.echo(f"   • Fetching images from Unsplash")
         click.echo(f"   • Creating PPTX with rendered slides")
         click.echo()
-        
+
+        # Generate with structure (either original or edited)
         result = orchestrator.generate_presentation(
-            transcription_text,
             output_path=output,
             use_images=images,
             theme=theme,
-            use_html_generation=True
+            use_html_generation=True,
+            structure=structure  # Pass the structure (edited or original)
         )
 
         if result['status'] == 'success':

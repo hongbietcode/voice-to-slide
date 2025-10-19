@@ -1,0 +1,96 @@
+{
+  "_instructions": {
+    "info": "Edit this presentation structure as needed",
+    "rules": [
+      "Keep the JSON syntax valid (use a JSON validator if needed)",
+      "Preserve the structure: title, slides array",
+      "Each slide must have: title, bullet_points (array)",
+      "Optional: image_theme (string) for each slide",
+      "Save the file when done and return to the CLI"
+    ],
+    "example_slide": {
+      "title": "Slide Title",
+      "bullet_points": [
+        "Point 1",
+        "Point 2",
+        "Point 3"
+      ],
+      "image_theme": "business meeting"
+    }
+  },
+  "presentation": {
+    "title": "OpenAI Dev Day 2025: The Future of AI Development",
+    "slides": [
+      {
+        "title": "Introduction: The Tech Stack Revolution",
+        "bullet_points": [
+          "Sam Altman announces game-changing features at OpenAI Dev Day 2025",
+          "Six major announcements that will transform AI app development",
+          "ChatGPT evolving into an app platform/operating system",
+          "800 million weekly active users represent massive distribution opportunity"
+        ],
+        "image_theme": "AI technology conference stage presentation"
+      },
+      {
+        "title": "ChatGPT Apps Platform",
+        "bullet_points": [
+          "Third attempt after GPT plugins and GPTs failed to gain traction",
+          "ChatGPT as operating system - no need for traditional apps",
+          "Current trials with major apps like Zillow",
+          "Potential benefits but also UI complexity concerns"
+        ],
+        "image_theme": "ChatGPT mobile app interface smartphone"
+      },
+      {
+        "title": "API Updates & New Models",
+        "bullet_points": [
+          "SORA2 and GPT-5 Pro now available in API",
+          "Sora 2: 50 cents per second of high-quality video",
+          "New smaller, more affordable models for voice/image generation",
+          "Cost-effective options for AI-powered features"
+        ],
+        "image_theme": "API code development programming"
+      },
+      {
+        "title": "Developer Tools Revolution",
+        "bullet_points": [
+          "GitHub Action for Codex automates code reviews",
+          "Automatic security scanning and documentation generation",
+          "Streamlines development workflow",
+          "Saves time on repetitive coding tasks"
+        ],
+        "image_theme": "GitHub code review automation developer"
+      },
+      {
+        "title": "Agent Kit: No-Code AI Development",
+        "bullet_points": [
+          "Unified platform for building, deploying, and optimizing AI agents",
+          "Flowchart-style canvas for visual app logic",
+          "Empowers non-engineers to build complex applications",
+          "Potential complexity ceiling limitations for advanced projects"
+        ],
+        "image_theme": "No-code development workflow automation flowchart"
+      },
+      {
+        "title": "Industry Impact & Competition",
+        "bullet_points": [
+          "JetBrains launches Juni AI coding agent",
+          "Deep codebase context understanding",
+          "Integration with GitHub and external platforms",
+          "Growing AI development tool ecosystem"
+        ],
+        "image_theme": "AI coding software development workplace"
+      },
+      {
+        "title": "Key Takeaways & Future Outlook",
+        "bullet_points": [
+          "AI development becoming more accessible and automated",
+          "Major shift from traditional apps to AI-powered platforms",
+          "Early adopters positioned for significant opportunities",
+          "Balance between automation and developer control needed"
+        ],
+        "image_theme": "Future AI technology innovation abstract"
+      }
+    ]
+  }
+}
