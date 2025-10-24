@@ -42,3 +42,4 @@ workspace/slide_images/
 workspace/slides/*.html
 output/*.pptx
 test*.pptx
+storage

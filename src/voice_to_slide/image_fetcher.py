@@ -3,7 +3,7 @@
 import os
 import requests
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from PIL import Image
 from .utils import get_logger, ensure_directory
 

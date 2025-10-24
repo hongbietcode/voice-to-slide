@@ -1,0 +1,36 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies including Playwright requirements
+RUN apt-get update && apt-get install -y \
+    gcc \
+    postgresql-client \
+    wget \
+    gnupg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy uv configuration and README
+COPY pyproject.toml ./
+COPY README.md ./
+
+# Copy source code (needed for editable install)
+COPY src/ ./src/
+
+# Install uv
+RUN pip install uv
+
+# Install dependencies using uv
+RUN uv sync
+
+# Install Playwright and browsers
+RUN uv run playwright install --with-deps chromium
+
+# Copy API code
+COPY api/ ./api/
+
+# Create storage directories
+RUN mkdir -p /app/storage/uploads /app/storage/workspace /app/storage/outputs
+
+# Default command (can be overridden in docker-compose)
+CMD ["celery", "-A", "api.celery_config", "worker", "--queue=generation", "--concurrency=1", "--loglevel=info"]
