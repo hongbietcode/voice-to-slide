@@ -524,6 +524,26 @@ This project previously used **Strategy A** (skill-based generation). The old ap
 - Verify output directory is writable
 - Check rendered images exist in `workspace/slide_images/`
 
+## Project Documentation
+
+### Essential Documentation (Root Level)
+- **README.md** - Project overview, features, and quick start
+- **GETTING_STARTED.md** - Detailed setup and installation instructions
+- **INTERACTIVE_EDITING.md** - Guide to AI-powered interactive editing feature
+- **WORKFLOW.md** - Development workflow and best practices
+- **CLAUDE.md** (this file) - Development guide for Claude Code
+
+### Web UI Documentation
+- **docs/WEB_UI_README.md** - Web UI setup, Docker deployment, and usage guide
+- **docs/README.md** - Complete documentation index
+
+### Development History (Archived)
+- **docs/development/** - Implementation reports, design documents, and historical references
+  - `WEB_UI_DESIGN_PLAN.md` - Original 97-page architecture design
+  - `IMPLEMENTATION_SUMMARY.md` - What was built and how
+  - `SUCCESS_REPORT.md` - Deployment success details
+  - See `docs/README.md` for complete index
+
 ## Related Documentation
 
 - Soniox API: https://soniox.com/docs
