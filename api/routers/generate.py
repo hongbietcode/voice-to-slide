@@ -3,13 +3,14 @@
 import os
 import uuid
 from pathlib import Path
-from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from api.database import get_db
 from api.schemas.job_schema import JobResponse
 from api.services.job_service import JobService
 from api.tasks.generation_tasks import start_generation_pipeline
+from api.middleware.rate_limiter import rate_limiter
 
 router = APIRouter(prefix="/api/v1", tags=["generation"])
 
@@ -17,11 +18,12 @@ router = APIRouter(prefix="/api/v1", tags=["generation"])
 MAX_FILE_SIZE = 100 * 1024 * 1024
 
 # Allowed audio formats
-ALLOWED_EXTENSIONS = {".mp3", ".wav", ".m4a", ".ogg"}
+ALLOWED_EXTENSIONS = {".mp3", ".wav", ".m4a", ".ogg", ".webm"}
 
 
 @router.post("/generate", response_model=JobResponse)
 async def generate_presentation(
+    request: Request,
     audio_file: UploadFile = File(...),
     theme: str = Form(default="Modern Professional"),
     include_images: bool = Form(default=True),
@@ -33,7 +35,8 @@ async def generate_presentation(
     Start a new presentation generation job.
 
     Args:
-        audio_file: Audio file (mp3, wav, m4a, ogg)
+        request: FastAPI request (for rate limiting)
+        audio_file: Audio file (mp3, wav, m4a, ogg, webm)
         theme: Presentation theme (default: "Modern Professional")
         include_images: Include images from Unsplash (default: True)
         interactive_mode: Enable interactive editing (default: False)
@@ -41,7 +44,14 @@ async def generate_presentation(
 
     Returns:
         JobResponse with job_id and status
+
+    Raises:
+        HTTPException 429: Rate limit exceeded
+        HTTPException 400: Invalid file format
+        HTTPException 413: File too large
     """
+    # Check rate limit
+    await rate_limiter(request, db)
     # Validate file extension
     file_ext = Path(audio_file.filename).suffix.lower()
     if file_ext not in ALLOWED_EXTENSIONS:

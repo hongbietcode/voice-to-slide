@@ -43,3 +43,4 @@ workspace/slides/*.html
 output/*.pptx
 test*.pptx
 storage
+.env.production
