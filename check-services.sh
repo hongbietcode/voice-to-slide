@@ -27,8 +27,8 @@ else
 fi
 
 # Check API
-if curl -s http://localhost:8000/health > /dev/null 2>&1; then
-    echo "✅ API: Healthy (http://localhost:8000)"
+if curl -s http://localhost:8002/health > /dev/null 2>&1; then
+    echo "✅ API: Healthy (http://localhost:8002)"
 else
     echo "❌ API: Not ready"
 fi
@@ -43,8 +43,8 @@ fi
 echo ""
 echo "📊 Service URLs:"
 echo "   Frontend:  http://localhost:3000"
-echo "   API Docs:  http://localhost:8000/docs"
-echo "   API Health: http://localhost:8000/health"
+echo "   API Docs:  http://localhost:8002/docs"
+echo "   API Health: http://localhost:8002/health"
 echo ""
 echo "📝 View logs: docker compose logs -f [service-name]"
 echo "   Services: api, db, redis, worker-transcription, worker-analysis, worker-generation, frontend"

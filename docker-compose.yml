@@ -4,132 +4,155 @@ services:
   # PostgreSQL Database
   db:
     image: postgres:16
-    container_name: voice-to-slide-db
+    container_name: voice-to-slide-db-prod
     environment:
       POSTGRES_DB: voice_to_slide
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+      - postgres_data_prod:/var/lib/postgresql/data
+    # No external port exposure - internal only
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
+    networks:
+      - voice-to-slide-network
 
   # Redis (Celery broker + cache)
   redis:
     image: redis:7-alpine
-    container_name: voice-to-slide-redis
-    ports:
-      - "6379:6379"
+    container_name: voice-to-slide-redis-prod
+    # No external port exposure - internal only
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 3s
       retries: 5
+    restart: unless-stopped
+    networks:
+      - voice-to-slide-network
 
   # FastAPI Backend
   api:
     build:
       context: .
       dockerfile: api/Dockerfile
-    container_name: voice-to-slide-api
+    container_name: voice-to-slide-api-prod
     env_file: .env
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/voice_to_slide
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/voice_to_slide
       - REDIS_URL=redis://redis:6379/0
       - STORAGE_DIR=/app/storage
+      - LOG_LEVEL=INFO
     volumes:
-      - ./src:/app/src
-      - ./api:/app/api
       - ./storage:/app/storage
     ports:
-      - "8000:8000"
+      - "8002:8002" # Expose on port 8002 externally, 8002 internally
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: uv run uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uv run uvicorn api.main:app --host 0.0.0.0 --port 8002 --workers 4
+    restart: unless-stopped
+    networks:
+      - voice-to-slide-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8002/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # Celery Worker - Transcription Queue
   worker-transcription:
     build:
       context: .
       dockerfile: api/Dockerfile
-    container_name: voice-to-slide-worker-transcription
+    container_name: voice-to-slide-worker-transcription-prod
     env_file: .env
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/voice_to_slide
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/voice_to_slide
       - REDIS_URL=redis://redis:6379/0
       - STORAGE_DIR=/app/storage
     volumes:
-      - ./src:/app/src
-      - ./api:/app/api
       - ./storage:/app/storage
     depends_on:
       - db
       - redis
     command: uv run celery -A api.celery_config worker --queues=transcription --concurrency=2 --loglevel=info
+    restart: unless-stopped
+    networks:
+      - voice-to-slide-network
 
   # Celery Worker - Analysis Queue
   worker-analysis:
     build:
       context: .
       dockerfile: api/Dockerfile
-    container_name: voice-to-slide-worker-analysis
+    container_name: voice-to-slide-worker-analysis-prod
     env_file: .env
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/voice_to_slide
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/voice_to_slide
       - REDIS_URL=redis://redis:6379/0
       - STORAGE_DIR=/app/storage
     volumes:
-      - ./src:/app/src
-      - ./api:/app/api
       - ./storage:/app/storage
     depends_on:
       - db
       - redis
     command: uv run celery -A api.celery_config worker --queues=analysis --concurrency=4 --loglevel=info
+    restart: unless-stopped
+    networks:
+      - voice-to-slide-network
 
   # Celery Worker - Generation Queue (with Playwright)
   worker-generation:
     build:
       context: .
       dockerfile: api/Dockerfile.playwright
-    container_name: voice-to-slide-worker-generation
+    container_name: voice-to-slide-worker-generation-prod
     env_file: .env
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/voice_to_slide
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/voice_to_slide
       - REDIS_URL=redis://redis:6379/0
       - STORAGE_DIR=/app/storage
     volumes:
-      - ./src:/app/src
-      - ./api:/app/api
       - ./storage:/app/storage
     depends_on:
       - db
       - redis
     command: uv run celery -A api.celery_config worker --queues=generation --concurrency=1 --loglevel=info
+    restart: unless-stopped
+    networks:
+      - voice-to-slide-network
 
-  # Frontend (Vite dev server)
+  # Frontend (Production Build)
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile.dev
-    container_name: voice-to-slide-frontend
-    volumes:
-      - ./frontend/src:/app/src
-      - ./frontend/public:/app/public
+      dockerfile: Dockerfile.prod
+      args:
+        - VITE_API_URL=${VITE_API_URL:-http://localhost:8002}
+        - VITE_WS_URL=${VITE_WS_URL:-ws://localhost:8002}
+    container_name: voice-to-slide-frontend-prod
     ports:
-      - "3000:3000"
-    environment:
-      - VITE_API_URL=http://localhost:8000
-      - VITE_WS_URL=ws://localhost:8000
-    command: npm run dev -- --host 0.0.0.0
+      - "9002:80" # Expose on port 9002 externally, 80 internally
+    restart: unless-stopped
+    networks:
+      - voice-to-slide-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:80" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
-  postgres_data:
+  postgres_data_prod:
+
+
+networks:
+  voice-to-slide-network:
+    driver: bridge
